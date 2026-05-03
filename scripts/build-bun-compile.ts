@@ -507,6 +507,7 @@ console.log(`[bun-compile] Building with Bun.build() JS API...`);
 
 const result = await Bun.build({
   entrypoints: ["./src/entry.ts"],
+  naming: "[name]-[hash].[ext]",
   compile: compileOptions as { outfile: string; target?: string },
   plugins: [plugin],
   external: externals,
