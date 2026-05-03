@@ -138,6 +138,9 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.arch }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       # --- Pre-build assets ---
+      - name: Build project
+        run: pnpm build
+
       - name: Build Control UI
         run: pnpm ui:build
 
