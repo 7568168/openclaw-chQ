@@ -1,53 +1,47 @@
-import { Project } from "ts-morph";
 import type { PatchContext } from "../types.js";
-
-function createProject(source: string, fileName = "source.ts") {
-  const project = new Project({ useInMemoryFileSystem: true });
-  return project.createSourceFile(fileName, source);
-}
 
 export function patchVersionTs(
   source: string,
   ctx: Pick<PatchContext, "pkgJson">,
 ): string {
-  const sf = createProject(source, "version.ts");
-  const fn = sf.getFunctionOrThrow("readVersionFromJsonCandidates");
-  fn.setBodyText(`return ${JSON.stringify(ctx.pkgJson.version)};`);
-  return sf.getFullText();
+  // Replace readVersionFromJsonCandidates function body to return hardcoded version
+  return source.replace(
+    /(function\s+readVersionFromJsonCandidates\s*\(\)[^{]*\{)\s*\n[\s\S]*?(\n\})/,
+    `$1\n  return ${JSON.stringify(ctx.pkgJson.version)};$2`
+  );
 }
 
 export function patchGitCommit(
   source: string,
   ctx: Pick<PatchContext, "gitHead">,
 ): string {
-  const sf = createProject(source, "git-commit.ts");
-  // readCommitFromPackageJson is a const arrow function
-  const decl = sf.getVariableDeclarationOrThrow("readCommitFromPackageJson");
-  decl.setInitializer(`() => ${JSON.stringify(ctx.gitHead)}`);
-  return sf.getFullText();
+  // Replace readCommitFromPackageJson const arrow function
+  return source.replace(
+    /(const\s+readCommitFromPackageJson\s*=\s*\()?\s*(?:async\s*)?\(\s*\)\s*(?::\s*\w+)?\s*=>\s*\{[\s\S]*?\}/,
+    `() => ${JSON.stringify(ctx.gitHead)}`
+  );
 }
 
 export function patchOpenClawRoot(source: string): string {
-  const sf = createProject(source, "openclaw-root.ts");
-  // Replace async variant
-  const asyncFn = sf.getFunctionOrThrow("resolveOpenClawPackageRoot");
-  asyncFn.setBodyText(
-    `return require("node:path").dirname(process.execPath);`,
+  // Replace resolveOpenClawPackageRoot to use execPath
+  source = source.replace(
+    /(async\s+function\s+resolveOpenClawPackageRoot\s*\(\)[^{]*\{)\s*\n[\s\S]*?(\n\})/,
+    `$1\n  return require("node:path").dirname(process.execPath);$2`
   );
-  // Replace sync variant
-  const syncFn = sf.getFunctionOrThrow("resolveOpenClawPackageRootSync");
-  syncFn.setBodyText(
-    `return require("node:path").dirname(process.execPath);`,
+  // Replace resolveOpenClawPackageRootSync
+  source = source.replace(
+    /(function\s+resolveOpenClawPackageRootSync\s*\(\)[^{]*\{)\s*\n[\s\S]*?(\n\})/,
+    `$1\n  return require("node:path").dirname(process.execPath);$2`
   );
-  return sf.getFullText();
+  return source;
 }
 
 export function patchPluginRuntimeVersion(
   source: string,
   ctx: Pick<PatchContext, "pkgJson">,
 ): string {
-  const sf = createProject(source, "runtime-index.ts");
-  const fn = sf.getFunctionOrThrow("resolveVersion");
-  fn.setBodyText(`return ${JSON.stringify(ctx.pkgJson.version)};`);
-  return sf.getFullText();
+  return source.replace(
+    /(function\s+resolveVersion\s*\(\)[^{]*\{)\s*\n[\s\S]*?(\n\})/,
+    `$1\n  return ${JSON.stringify(ctx.pkgJson.version)};$2`
+  );
 }
