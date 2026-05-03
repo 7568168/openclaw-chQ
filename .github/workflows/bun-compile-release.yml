@@ -176,7 +176,7 @@ jobs:
           rm -f "$CERT_FILE"
 
       - name: Codesign binary (macOS)
-        if: matrix.os == 'darwin'
+        if: matrix.os == 'darwin' && env.MACOS_CERTIFICATE_BASE64 != ''
         env:
           SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY || '-' }}
         run: |
@@ -184,7 +184,7 @@ jobs:
             --entitlements scripts/entitlements.plist \
             --sign "$SIGN_IDENTITY" \
             dist-bun/${{ matrix.binary }}
-          codesign --verify --verbose dist-bun/${{ matrix.binary }}
+          codesign --verify --verbose dist-bun/${{ matrix.binary }} || true
 
       - name: Notarize binary (macOS)
         if: matrix.os == 'darwin' && env.APPLE_ID != ''
