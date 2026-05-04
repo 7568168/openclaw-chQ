@@ -92,6 +92,8 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          version: "10.23.0"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -138,11 +140,14 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.arch }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       # --- Pre-build assets ---
-      - name: Build project
-        run: pnpm build
-
       - name: Build Control UI
         run: pnpm ui:build
+
+      - name: Build dist/entry.js (tsdown)
+        run: pnpm build
+
+      - name: Write build-info.json
+        run: node --import tsx scripts/write-build-info.ts
 
       # --- Bun compile ---
       - name: Build binary (${{ matrix.os }}-${{ matrix.arch }})
@@ -179,7 +184,7 @@ jobs:
           rm -f "$CERT_FILE"
 
       - name: Codesign binary (macOS)
-        if: matrix.os == 'darwin' && env.MACOS_CERTIFICATE_BASE64 != ''
+        if: matrix.os == 'darwin'
         env:
           SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY || '-' }}
         run: |
@@ -187,7 +192,7 @@ jobs:
             --entitlements scripts/entitlements.plist \
             --sign "$SIGN_IDENTITY" \
             dist-bun/${{ matrix.binary }}
-          codesign --verify --verbose dist-bun/${{ matrix.binary }} || true
+          codesign --verify --verbose dist-bun/${{ matrix.binary }}
 
       - name: Notarize binary (macOS)
         if: matrix.os == 'darwin' && env.APPLE_ID != ''
