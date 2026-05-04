@@ -182,7 +182,7 @@ jobs:
           rm -f "$CERT_FILE"
 
       - name: Codesign binary (macOS)
-        if: matrix.os == 'darwin'
+        if: matrix.os == 'darwin' && env.MACOS_CERTIFICATE_BASE64 != ''
         env:
           SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY || '-' }}
         run: |
@@ -288,7 +288,7 @@ jobs:
         run: |
           TAG="${{ steps.resolve-tag.outputs.tag }}"
           for f in ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}.zip; do
-            [ -f "$f" ] && gh release upload "$TAG" "$f" --clobber
+            [ -f "$f" ] && gh release upload "$TAG" "$f" --clobber || true
           done
 
       - name: Create release and upload assets
