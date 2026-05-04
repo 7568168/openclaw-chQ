@@ -3,7 +3,7 @@
  * Simple bun compile wrapper for OpenClaw.
  * Compiles the already-built dist/entry.js into a standalone binary.
  */
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
@@ -24,10 +24,12 @@ console.log("[simple-compile] Building openclaw binary...");
 console.log("[simple-compile] target:", target || "current platform");
 console.log("[simple-compile] outdir:", outdir);
 
-// Use the already-built dist/entry.js from pnpm build
+// Read version from package.json for define injection
+const pkgJson = JSON.parse(readFileSync("package.json", "utf-8"));
+console.log("[simple-compile] version:", pkgJson.version);
+
 const entrypoint = resolve("dist/entry.js");
 if (!existsSync(entrypoint)) {
-  // Fallback to openclaw.mjs launcher
   const fallback = resolve("openclaw.mjs");
   if (!existsSync(fallback)) {
     console.error("[simple-compile] Neither dist/entry.js nor openclaw.mjs found. Run 'pnpm build' first.");
@@ -51,8 +53,10 @@ console.log("[simple-compile] Entry:", entry);
 const result = await Bun.build({
   entrypoints: [entry],
   compile: compileOptions,
-  // Disable splitting to avoid chunk collision bug in Bun compile mode
   splitting: false,
+  define: {
+    __OPENCLAW_VERSION__: JSON.stringify(pkgJson.version),
+  },
 });
 
 if (!result.success) {
